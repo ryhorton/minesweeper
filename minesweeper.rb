@@ -1,9 +1,9 @@
 class Tile
 
-  attr_reader :status, :bomb?, :bombed?, :revealed?, :flagged?, :position
+  attr_reader :status, :bomb, :bombed, :revealed, :flagged, :position
 
-  def initialize(board, bomb?)
-    @bomb? = bomb?
+  def initialize(board, bomb)
+    @bomb = bomb
   end
 
   # def inspect
@@ -11,11 +11,11 @@ class Tile
   # end
 
   def status
-    if bombed?
+    if bombed
       status = :b
-    elsif revealed?
+    elsif revealed
       status = :r
-    elsif flagged?
+    elsif flagged
       status = :f
     else
       status = :u # untouched
@@ -48,15 +48,17 @@ end
 
 class Board
 
-  @board = Array.new(9) { Array.new(9) }
+  attr_accessor :board
 
   def initialize(num_bombs)
+    @board = Array.new(9) { Array.new(9) }
+    
     bombs = bomb_positions(num_bombs)
 
-    @board.each_with_index do |row, i|
+    board.each_with_index do |row, i|
       row.each_index do |j|
-        bomb? = bombs.include?([i, j])
-        @board[i][j] = Tile.new(self, bomb?)
+        bomb = bombs.include?([i, j])
+        @board[i][j] = Tile.new(self, bomb)
       end
     end
   end
@@ -93,7 +95,7 @@ end
 
 class Game
 
-  num_bombs = rand(10,20)
+  num_bombs = rand(10..20)
 
   # initialize board with num_bombs
 
