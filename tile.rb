@@ -1,18 +1,26 @@
 require './board.rb'
 
 class Tile
+  attr_accessor :status, :board, :is_bomb, :position
 
-  attr_reader :board, :status, :is_bomb, :bombed, :revealed, :flagged, :position
+  NEIGHBOR_DIFFS = [
+    [-1,0],
+    [-1,1],
+    [0,1],
+    [1,1],
+    [1,0],
+    [1,-1],
+    [0,-1],
+    [-1,-1]
+  ]
+
 
   def initialize(board, is_bomb, position)
     @is_bomb = is_bomb
     @position = position
     @board = board
+    @status = :untouched
   end
-
-  # def inspect
-  #   "Position: #{position}, Status: #{status}"
-  # end
 
   def is_bomb?
     is_bomb
@@ -21,67 +29,65 @@ class Tile
   def inspect
     position.inspect
   end
-  #
-  # def status
-  #   if bombed
-  #     status = :bombed
-  #   elsif revealed
-  #     status = :revealed
-  #   elsif flagged
-  #     status = :flagged
-  #   else
-  #     status = :untouched # untouched
-  #   end
-  # end
+
+  def flag
+    self.status = :flagged
+  end
 
   def reveal
-    if is_bomb?
-      status = :bombed
-      return
-    else
-      # BFS
-      status = :revealed
+    return self.status = :bombed if is_bomb?
 
-      q = [self]
+    self.status = :revealed
 
-      neighbors.each do |neighbor|
+    queue = [self]
+    until queue.empty?
+      queue.shift.neighbors.each do |neighbor|
+        next if neighbor.is_bomb?
+        neighbor.status = :revealed
+
+        if neighbor.neighbor_bomb_count == 0
+          queue += neighbor.neighbors.select(&:untouched?)
+        end
 
       end
-
     end
   end
 
-  def valid_coord(x, y)
+  def untouched?
+    status == :untouched
+  end
+
+  def bombed?
+    status == :bombed
+  end
+
+  def flagged?
+    status == :flagged
+  end
+
+  def valid_coord(pos)
+    x, y = pos
     x.between?(0, 8) && y.between?(0, 8)
   end
 
   def neighbors
-    neighbor_diffs = [
-      [-1,0],
-      [-1,1],
-      [0,1],
-      [1,1],
-      [1,0],
-      [1,-1],
-      [0,-1],
-      [-1,-1]
-    ]
+    return @neighbors if @neighbors
 
     neighbors = []
-    neighbor_diffs.each do |dx, dy|
-      neighbor = [position.first + dx, position.last + dy]
-      neighbors << neighbor if valid_coord(neighbor.first, neighbor.last)
+    NEIGHBOR_DIFFS.each do |dx, dy|
+      neighbor_pos = [position.first + dx, position.last + dy]
+      neighbors << neighbor_pos if valid_coord(neighbor_pos)
     end
 
-    neighbors.map {|i,j| board.tile(i, j)}
+    @neighbors = neighbors.map { |pos| board[pos] }
   end
 
   def neighbor_bomb_count
     count = 0
-    neighbors.each do |x,y|
-      ## HOW TO ADD [][] to BOARD???
-      count += 1 if board.tile(x, y).is_bomb?
+    neighbors.each do |tile|
+      count += 1 if tile.is_bomb?
     end
+
     count
   end
 
@@ -91,7 +97,7 @@ class Tile
       :bombed => "B",
       :flagged => "F",
       :untouched => "*",
-      :revealed => neighbor_bomb_count == 0 ? "_" : neighbor_bomb_count.to_s
+      :revealed => (neighbor_bomb_count == 0) ? "_" : neighbor_bomb_count.to_s
     }
 
     displays[status]

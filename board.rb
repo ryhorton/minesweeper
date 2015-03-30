@@ -4,18 +4,23 @@ class Board
 
   attr_accessor :board, :bombs
 
-  def initialize(num_bombs)
-    @board = Array.new(9) { Array.new(9) }
+  def initialize(num_bombs, size)
+    @board = Array.new(size) { Array.new(size) }
 
-    @bombs = bomb_positions(num_bombs)
+    bombs = seed(num_bombs)
 
     board.each_with_index do |row, i|
       row.each_index do |j|
         position = [i, j]
         bomb = bombs.include?(position)
-        @board[i][j] = Tile.new(self, bomb, position) # board, boolean, array
+        self[[i,j]] = Tile.new(self, bomb, position) # board, boolean, array
       end
     end
+  end
+
+  def []=(position, value)
+    x,y = position
+    board[x][y] = value
   end
 
   def [](pos)
@@ -23,11 +28,19 @@ class Board
     board[x][y] # returns the relevant tile
   end
 
-  def bomb_positions(num_bombs)
+  def bombs
+    bombs = []
+    board.flatten.each do |tile|
+      bombs << tile if tile.is_bomb?
+    end
+    bombs
+  end
+
+  def seed(num_bombs)
     positions = []
 
     until positions.size == num_bombs
-      bomb_tile = [rand(8), rand(8)]
+      bomb_tile = [rand(size), rand(size)]
       positions << bomb_tile unless positions.include?(bomb_tile)
     end
 
@@ -47,6 +60,7 @@ class Board
         board_string += board[i][j].render + " "
       end
     end
+
     board_string
   end
 
@@ -55,11 +69,11 @@ class Board
   end
 
   def all_bombs_flagged?
-    bombs.all { |(i, j)| board[i][j].status == :flagged }
+    bombs.all? { |tile| self[tile.position].flagged? }
   end
 
   def all_tiles_revealed?
-    board.each do |tile|
+    board.flatten.each do |tile|
       next if tile.is_bomb? # skip if the tile is a bomb
       if tile.status != :revealed
         return false
@@ -70,8 +84,7 @@ class Board
   end
 
   def lose?
-    # the tile the user inputs is a bomb
-    board.any?{|tile| tile.status == :bombed}
+    board.flatten.any?(&:bombed?) || false
   end
 
 end
