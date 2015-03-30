@@ -1,21 +1,24 @@
 class Tile
 
-  attr_reader :status, :bombed?, :revealed?, :flagged?, :position
+  attr_reader :status, :bomb?, :bombed?, :revealed?, :flagged?, :position
 
-  def initialize(board)
+  def initialize(board, bomb?)
+    @bomb? = bomb?
   end
 
-  def inspect
-    "Position: #{position}, Status: #{status}"
-  end
+  # def inspect
+  #   "Position: #{position}, Status: #{status}"
+  # end
 
   def status
     if bombed?
-      status = "Bombed"
+      status = :b
     elsif revealed?
-      status = "Revealed, number neighbor bombs: #{neighbor_bomb_count}"
+      status = :r
+    elsif flagged?
+      status = :f
     else
-      status = "Flagged"
+      status = :u # untouched
     end
   end
 
@@ -26,18 +29,34 @@ class Tile
   end
 
   def neighbor_bomb_count
+    # return int number of bombs in nieghboring tiles
+  end
+
+  def render
+
+    displays = {
+      :b => "B",
+      :f => "F",
+      :u => "*",
+      :r => neighbor_bomb_count == 0 ? "_" : neighbor_bomb_count.to_s
+    }
+
+    displays[status]
   end
 
 end
 
 class Board
 
-  @board = Array.new(9) {Array.new(9)}
+  @board = Array.new(9) { Array.new(9) }
 
   def initialize(num_bombs)
-    @board.each_with_index do |row,i|
-      row.each_index do |j|
+    bombs = bomb_positions(num_bombs)
 
+    @board.each_with_index do |row, i|
+      row.each_index do |j|
+        bomb? = bombs.include?([i, j])
+        @board[i][j] = Tile.new(self, bomb?)
       end
     end
   end
@@ -58,7 +77,15 @@ class Board
   end
 
   def render
-
+    board_string = ""
+    @board.each_with_index do |row, i|
+      board_string += "\n"
+      row.each_index do |j|
+        # calling Tile#render bc board[i][j] is a tile
+        board_string += board[i][j].render + " "
+      end
+    end
+    board_string
   end
 
 end
